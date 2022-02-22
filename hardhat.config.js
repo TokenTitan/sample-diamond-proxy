@@ -3,6 +3,7 @@
 require('@nomiclabs/hardhat-waffle')
 require("@nomiclabs/hardhat-etherscan")
 require('@nomiclabs/hardhat-ethers')
+require('dotenv').config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -30,8 +31,8 @@ module.exports = {
   },
   networks: {
     goerli: {
-      url: "https://eth-goerli.alchemyapi.io/v2/xxxxxxxxxxxxxxxxxxxxxxxx",
-      accounts: [],
+      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
+      accounts: [`${process.env.PRIVATE_KEY}`],
       tags: ['testnet', 'L1'],
       // gasPrice: 600000000000, // Uncomment in case of pending txs, and adjust gas
       companionNetworks: {
@@ -40,6 +41,6 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: "xxxxxxxxxxxxxxxxxxxxxxxx",
+    apiKey: `${process.env.ETHERSCAN_API_KEY}`,
   }
 }

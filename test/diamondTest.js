@@ -1,4 +1,5 @@
 /* global describe it before ethers */
+const { ethers } = require("hardhat");
 
 const {
   getSelectors,
@@ -7,17 +8,22 @@ const {
 const { deployDiamond } = require('../scripts/deploy.js')
 const { upgradeFacet } = require('../scripts/upgrade.js')
 
-const { assert } = require('chai')
+const { assert, expect } = require('chai')
 
 describe('DiamondTest', async function () {
   let diamondAddress
   let diamondCutFacet
   let diamondLoupeFacet
   let result
+  let accounts
   const addresses = []
+  let erc20Facet
+  let erc721Facet
+  let erc20FacetV2
 
   before(async function () {
     diamondAddress = await deployDiamond()
+    accounts = await ethers.getSigners()
     diamondCutFacet = await ethers.getContractAt('DiamondCutFacet', diamondAddress)
     diamondLoupeFacet = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
     erc20Facet = await ethers.getContractAt('ERC20Facet', diamondAddress)
@@ -79,42 +85,41 @@ describe('DiamondTest', async function () {
   })
 
   it('should test function call on erc20', async () => {
-    let erc20Facet = await ethers.getContractAt('ERC20Facet', diamondAddress)
     assert.equal(await erc20Facet.totalSupply(), 0)
     await erc20Facet.init_20()
     assert.equal(await erc20Facet.totalSupply(), 10000000000)
   })
 
   it('should test function call on erc721', async () => {
-    let erc721Facet = await ethers.getContractAt('ERC721Facet', diamondAddress)
     assert.equal(await erc721Facet.totalSupply721(), 0)
     await erc721Facet.init_721()
     assert.equal(await erc721Facet.totalSupply721(), 20000000000)
   })
 
   it('should test function call on erc20 facet from erc721', async () => {
-    let erc721Facet = await ethers.getContractAt('ERC721Facet', diamondAddress)
     assert.equal(await erc721Facet.methodCallOnOtherFacet(), 10000000000) // erc20 total supply
   })
 
   describe('upgrade erc20 facet', async function () {
     before(async function () {
       await upgradeFacet(diamondAddress);
+      erc20FacetV2 = await ethers.getContractAt('ERC20FacetV2', diamondAddress)
     })
 
     it('should be execute the upgraded logic', async () => {
-      let erc20FacetV2 = await ethers.getContractAt('ERC20FacetV2', diamondAddress)
       assert.equal(await erc20FacetV2.totalSupply(), "totalSupply was upgraded")
     })
 
     it('should be execute the added function', async () => {
-      let erc20FacetV2 = await ethers.getContractAt('ERC20FacetV2', diamondAddress)
       assert.equal(await erc20FacetV2.previousTotalSupply(), 10000000000)
     })
 
     it('should fetch the newly added variable', async () => {
-      let erc20FacetV2 = await ethers.getContractAt('ERC20FacetV2', diamondAddress)
       assert.equal(await erc20FacetV2.decimals(), 10000000000)
+    })
+
+    it('should revert if the caller is not admin', async () => {
+      expect(erc20FacetV2.connect(accounts[1]).previousTotalSupply()).to.be.revertedWith("Caller should be admin")
     })
   })
 })
